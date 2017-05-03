@@ -5,13 +5,24 @@
 #include <public.h>
 #include <vjoyinterface.h>
 
-#include "qextserialport.h"
+#include <QtSerialPort/QtSerialPort>
+#include <QApplication>
+
+#include "mymainwindow.h"
 
 using namespace std;
 
-int main()
+int main(int argc, char** argv)
 {
-    if(!vJoyEnabled()){
+    QApplication app(argc, argv);
+    MyMainWindow window;
+    window.show();
+    return app.exec();
+
+
+
+
+    /*if(!vJoyEnabled()){
         std::cout << "Error" << std::endl;
         return -1;
     }
@@ -52,19 +63,20 @@ int main()
         std::cout << "Success" << std::endl;
     }
 
+    QApplication app(argc, argv);
+
     std::ofstream file;
     file.open("test.txt");
 
-
-    QextSerialPort serial("COM4");
+    QSerialPort serial;
+    serial.setPort(QSerialPortInfo("COM4"));
+    serial.setFlowControl(QSerialPort::NoFlowControl);
+    serial.setBaudRate(QSerialPort::Baud115200);
     serial.open(QIODevice::ReadWrite);
-    serial.setBaudRate(BAUD115200);
-    serial.setDataBits(DATA_8);
-    serial.setParity(PAR_NONE);
-    serial.setStopBits(STOP_1);
-    serial.flush();
+    serial.setDataTerminalReady(true);
+    serial.setRequestToSend(true);
 
-    Sleep(2000);
+    Sleep(3000);
 
     JOYSTICK_POSITION_V2 data;
     data.bDevice = interfaceIndex;
@@ -77,34 +89,36 @@ int main()
     int input[4];
 
     serial.write("send\n");
+    serial.waitForBytesWritten(-1);
     while(1){
-        if(serial.bytesAvailable()){
-            serial.read(&c, 1);
+        serial.waitForReadyRead(1000);
+        serial.read(&c, 1);
+        std::cout << c << std::endl;
 
-            if(c == '\r'){
-                serial.write("send\n");
+        if(c == '\r'){
+            serial.write("send\n");
+            serial.waitForBytesWritten(-1);
 
-                data.wAxisX = input[0];
-                data.wAxisY = input[1];
-                data.wAxisZ = input[2];
-                data.wAxisXRot = input[3];
+            data.wAxisX = input[0];
+            data.wAxisY = input[1];
+            data.wAxisZ = input[2];
+            data.wAxisXRot = input[3];
 
-                UpdateVJD(data.bDevice, &data);
+            UpdateVJD(data.bDevice, &data);
 
-                joystickValueBufferPointer = 0;
-                count = 0;
-            }
-            else if(c == '\n'){
-                joystickValueBuffer[joystickValueBufferPointer++] = 0;
-                input[count++] = atoi(joystickValueBuffer);
-                joystickValueBufferPointer = 0;
-            }
-            else if(c == '\0'){
-                std::cout << "wtf" << std::endl;
-            }
-            else{
-                joystickValueBuffer[joystickValueBufferPointer++] = c;
-            }
+            joystickValueBufferPointer = 0;
+            count = 0;
+        }
+        else if(c == '\n'){
+            joystickValueBuffer[joystickValueBufferPointer++] = 0;
+            input[count++] = atoi(joystickValueBuffer);
+            joystickValueBufferPointer = 0;
+        }
+        else if(c == '\0'){
+            std::cout << "wtf" << std::endl;
+        }
+        else{
+            joystickValueBuffer[joystickValueBufferPointer++] = c;
         }
     }
 
@@ -112,6 +126,6 @@ int main()
     serial.close();
     file.close();
 
-    return 0;
+    return 0;*/
 }
 
